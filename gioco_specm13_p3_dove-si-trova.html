@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dove si trova? — Segnaletica SPECM13 P3</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #7B3F00 0%, #E65100 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            width: 800px;
+            height: 550px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #7B3F00 0%, #E65100 100%);
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 { font-size: 18px; }
+
+        .header-buttons { display: flex; gap: 10px; }
+
+        .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: white; color: #7B3F00; }
+
+        .content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* INTRO */
+        .intro-screen { text-align: center; max-width: 600px; }
+
+        .intro-screen h2 { font-size: 24px; color: #7B3F00; margin-bottom: 10px; }
+
+        .instructions-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .instructions-box h3 { font-size: 16px; color: #7B3F00; margin-bottom: 12px; text-align: center; }
+
+        .instructions-list {
+            list-style: none;
+            counter-reset: instruction-counter;
+            padding-left: 0;
+        }
+        .instructions-list li {
+            counter-increment: instruction-counter;
+            position: relative;
+            padding-left: 38px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #334155;
+        }
+        .instructions-list li::before {
+            content: counter(instruction-counter);
+            position: absolute;
+            left: 0; top: 0;
+            width: 26px; height: 26px;
+            background: #E65100;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .intro-objective {
+            background: #FFF3E0;
+            border-left: 4px solid #E65100;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.4em;
+            color: #7B3F00;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #E65100 0%, #7B3F00 100%);
+            color: white;
+            border: none;
+            padding: 14px 48px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(230,81,0,0.3);
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(230,81,0,0.4); }
+
+        /* GAME */
+        .game-screen { display: none; width: 100%; max-width: 750px; }
+        .game-screen.active { display: block; }
+
+        .scenario-info { text-align: center; margin-bottom: 4px; }
+        .scenario-number { font-size: 15px; color: #64748b; font-weight: 600; }
+        .timer { font-size: 20px; color: #7B3F00; font-weight: 700; }
+
+        .question-box {
+            background: #FFF3E0;
+            border: 2px solid #E65100;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 8px;
+            display: none;
+        }
+        .question-box.show { display: block; animation: slideDown 0.3s ease; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .question-box h3 { font-size: 17px; color: #7B3F00; }
+
+        /* Griglia 6 carte 3x2 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            max-width: 520px;
+            margin: 0 auto 6px auto;
+        }
+
+        .card {
+            aspect-ratio: 1;
+            position: relative;
+            cursor: pointer;
+            perspective: 1000px;
+            max-width: 150px;
+        }
+
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card.correct { pointer-events: none; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .card.wrong { animation: shake 0.3s; }
+
+        .card-inner {
+            position: relative;
+            width: 100%; height: 100%;
+            text-align: center;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .card-front {
+            background: white;
+            border: 3px solid #e2e8f0;
+        }
+        .card-front img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #E65100 0%, #7B3F00 100%);
+            transform: rotateY(180deg);
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .card.correct .card-front { border-color: #10b981; background: #d1fae5; }
+
+        .feedback-message {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .feedback-message.show { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .feedback-message.correct { background: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+        .feedback-message.incorrect { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+
+        /* RESULTS */
+        .results-screen { display: none; text-align: center; max-width: 500px; }
+        .results-screen.active { display: block; animation: fadeIn 0.5s; }
+
+        .results-icon { font-size: 56px; margin-bottom: 12px; }
+        .results-screen h2 { font-size: 24px; color: #7B3F00; margin-bottom: 12px; }
+
+        .results-stats {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #64748b; font-weight: 600; }
+        .stat-value { color: #7B3F00; font-weight: 700; font-size: 16px; }
+
+        .results-buttons { display: flex; gap: 15px; justify-content: center; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="game-container">
+
+    <div class="header">
+        <h1>🪧 Dove si trova? — Segnaletica di Sicurezza</h1>
+        <div class="header-buttons">
+            <button class="btn" onclick="resetGame()">🔄 Ricomincia</button>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- INTRO -->
+        <div class="intro-screen" id="introScreen">
+            <h2>🪧 Riconosci i Cartelli di Sicurezza</h2>
+            <div class="instructions-box">
+                <h3>📋 Come funziona:</h3>
+                <ol class="instructions-list">
+                    <li>Osserva attentamente le <strong>6 immagini</strong> per <strong>8 secondi</strong></li>
+                    <li>Le carte si girano — apparirà una <strong>domanda</strong></li>
+                    <li><strong>Clicca sulla carta</strong> che corrisponde al cartello richiesto</li>
+                    <li>Completa <strong>3 scenari</strong> con cartelli diversi e mescolati</li>
+                </ol>
+            </div>
+            <div class="intro-objective">
+                <strong>🎯 Obiettivo:</strong> Riconoscere i cartelli di sicurezza relativi a vibrazioni, microclima e rischio elettrico — e sapere cosa significano nel tuo ambiente di lavoro.
+            </div>
+            <button class="btn-start" onclick="startGame()">▶ Inizia il gioco</button>
+        </div>
+
+        <!-- GAME -->
+        <div class="game-screen" id="gameScreen">
+            <div class="scenario-info">
+                <div class="scenario-number" id="scenarioNumber">Scenario 1/3</div>
+                <div class="timer" id="timer">00:00</div>
+            </div>
+
+            <div class="question-box" id="questionBox">
+                <h3 id="questionText"></h3>
+            </div>
+
+            <div class="cards-grid" id="cardsGrid"></div>
+
+            <div class="feedback-message" id="feedbackMessage"></div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="results-screen" id="resultsScreen">
+            <div class="results-icon">🎉</div>
+            <h2>Gioco Completato!</h2>
+            <div class="results-stats">
+                <div class="stat-row">
+                    <span class="stat-label">⏱️ Tempo totale:</span>
+                    <span class="stat-value" id="finalTime">00:00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">✓ Risposte corrette:</span>
+                    <span class="stat-value" id="finalCorrect">0/3</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">❌ Errori:</span>
+                    <span class="stat-value" id="finalErrors">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">📊 Punteggio:</span>
+                    <span class="stat-value" id="finalScore">0%</span>
+                </div>
+            </div>
+            <div class="results-buttons">
+                <button class="btn-start" onclick="resetGame()">🔄 Gioca ancora</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const scenarios = [
+        {
+            // Scenario 1 — Vibrazioni + Rischio elettrico
+            images: [
+                { src: './images/pericolo-vibrazioni.png',    name: 'Pericolo vibrazioni' },
+                { src: './images/guanti-antivibrazioni.png',  name: 'Guanti antivibrazioni' },
+                { src: './images/obbligo-scarpe.png',         name: 'Scarpe antinfortunistiche' },
+                { src: './images/pericolo-elettrico.png',     name: 'Pericolo elettrico' },
+                { src: './images/campo-elettromagnetico.png', name: 'Campo elettromagnetico' },
+                { src: './images/quadro-elettrico.png',       name: 'Quadro elettrico' },
+            ],
+            questions: [
+                { text: 'Dove si trova il quadro elettrico?', answer: 'Quadro elettrico' },
+                { text: 'Dove si trovano i guanti antivibrazioni?', answer: 'Guanti antivibrazioni' },
+            ]
+        },
+        {
+            // Scenario 2 — Microclima
+            images: [
+                { src: './images/termometro.png',          name: 'Termometro' },
+                { src: './images/condizionatore.png',      name: 'Condizionatore' },
+                { src: './images/superfici-calde.png',     name: 'Superfici calde' },
+                { src: './images/ambienti-freddi.png',     name: 'Ambiente freddo' },
+                { src: './images/occhiali-da-sole.png',    name: 'Occhiali da sole' },
+                { src: './images/obbligo-scarpe.png',      name: 'Scarpe antinfortunistiche' },
+            ],
+            questions: [
+                { text: 'Dove si trova il termometro?', answer: 'Termometro' },
+                { text: 'Dove si trova il condizionatore?', answer: 'Condizionatore' },
+            ]
+        },
+        {
+            // Scenario 3 — Mix vibrazioni + microclima
+            images: [
+                { src: './images/pericolo-vibrazioni.png', name: 'Pericolo vibrazioni' },
+                { src: './images/guanti-antivibrazioni.png', name: 'Guanti antivibrazioni' },
+                { src: './images/termometro.png',           name: 'Termometro' },
+                { src: './images/superfici-calde.png',      name: 'Superfici calde' },
+                { src: './images/ambienti-freddi.png',      name: 'Ambiente freddo' },
+                { src: './images/divieto-pacemaker.png',    name: 'Divieto pacemaker' },
+            ],
+            questions: [
+                { text: 'Dove si trova il segnale di divieto per i portatori di pacemaker?', answer: 'Divieto pacemaker' },
+                { text: "Dove si trova l'immagine che rappresenta un ambiente freddo?", answer: 'Ambiente freddo' },
+            ]
+        },
+    ];
+
+    let currentScenario = 0;
+    let errors = 0;
+    let correctAnswers = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let shuffledScenarios = [];
+    let currentCards = [];
+
+    function shuffleArray(array) {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function startGame() {
+        document.getElementById('introScreen').classList.add('hidden');
+        document.getElementById('gameScreen').classList.add('active');
+
+        shuffledScenarios = shuffleArray(scenarios.map(s => ({
+            images: shuffleArray(s.images),
+            question: s.questions[Math.floor(Math.random() * s.questions.length)]
+        })));
+
+        currentScenario = 0;
+        errors = 0;
+        correctAnswers = 0;
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+
+        loadScenario();
+    }
+
+    function loadScenario() {
+        document.getElementById('scenarioNumber').textContent = `Scenario ${currentScenario + 1}/3`;
+        document.getElementById('questionBox').classList.remove('show');
+        document.getElementById('feedbackMessage').classList.remove('show');
+
+        const scenario = shuffledScenarios[currentScenario];
+        currentCards = scenario.images;
+
+        renderCards(false);
+
+        setTimeout(() => {
+            flipAllCards();
+            document.getElementById('questionText').textContent = scenario.question.text;
+            document.getElementById('questionBox').classList.add('show');
+        }, 8000);
+    }
+
+    function renderCards(flipped) {
+        const grid = document.getElementById('cardsGrid');
+        grid.innerHTML = '';
+
+        currentCards.forEach((card, index) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card' + (flipped ? ' flipped' : '');
+
+            cardEl.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-front">
+                        <img src="${card.src}" alt="${card.name}">
+                    </div>
+                    <div class="card-back">?</div>
+                </div>
+            `;
+
+            if (flipped) {
+                cardEl.addEventListener('click', () => handleCardClick(index, cardEl));
+            }
+
+            grid.appendChild(cardEl);
+        });
+    }
+
+    function flipAllCards() {
+        const cards = document.querySelectorAll('.card');
+        cards.forEach((card, index) => {
+            card.classList.add('flipped');
+            card.addEventListener('click', () => handleCardClick(index, card));
+        });
+    }
+
+    function handleCardClick(index, cardEl) {
+        const scenario = shuffledScenarios[currentScenario];
+        const selected = currentCards[index];
+
+        document.querySelectorAll('.card').forEach(c => c.style.pointerEvents = 'none');
+
+        cardEl.classList.remove('flipped');
+
+        if (selected.name === scenario.question.answer) {
+            setTimeout(() => cardEl.classList.add('correct'), 300);
+            correctAnswers++;
+            showFeedback('✅ Corretto! Hai riconosciuto il cartello giusto.', true);
+        } else {
+            setTimeout(() => cardEl.classList.add('wrong'), 300);
+            errors++;
+            showFeedback(`❌ Sbagliato! Cercavi: ${scenario.question.answer}`, false);
+        }
+
+        setTimeout(() => nextScenario(), 3000);
+    }
+
+    function nextScenario() {
+        currentScenario++;
+        if (currentScenario >= shuffledScenarios.length) {
+            endGame();
+        } else {
+            loadScenario();
+        }
+    }
+
+    function showFeedback(message, isCorrect) {
+        const fb = document.getElementById('feedbackMessage');
+        fb.textContent = message;
+        fb.className = 'feedback-message show ' + (isCorrect ? 'correct' : 'incorrect');
+    }
+
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const m = Math.floor(elapsed / 60);
+        const s = elapsed % 60;
+        document.getElementById('timer').textContent =
+            `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const m = Math.floor(elapsed / 60);
+        const s = elapsed % 60;
+
+        document.getElementById('finalTime').textContent =
+            `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        document.getElementById('finalCorrect').textContent = `${correctAnswers}/3`;
+        document.getElementById('finalErrors').textContent = errors;
+        document.getElementById('finalScore').textContent =
+            `${Math.round((correctAnswers / 3) * 100)}%`;
+
+        document.getElementById('gameScreen').classList.remove('active');
+        document.getElementById('resultsScreen').classList.add('active');
+    }
+
+    function resetGame() {
+        clearInterval(timerInterval);
+        document.getElementById('introScreen').classList.remove('hidden');
+        document.getElementById('gameScreen').classList.remove('active');
+        document.getElementById('resultsScreen').classList.remove('active');
+    }
+</script>
+</body>
+</html>
